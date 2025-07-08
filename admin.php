@@ -1,5 +1,5 @@
 <?php
-// 1. Connect to database
+// Connect to database
 $host = 'localhost';
 $user = 'root';
 $pass = '';
@@ -16,14 +16,28 @@ if (!isset($_SESSION['admin_logged_in'])) {
   exit;
 }
 
-// 2. Optional filtering
+// Optional status filter
 $statusFilter = '';
-if (isset($_GET['status']) && in_array($_GET['status'], ['Pending', 'Successful'])) {
+if (isset($_GET['status']) && in_array($_GET['status'], ['Pending', 'Successful', 'Cancelled'])) {
   $status = $conn->real_escape_string($_GET['status']);
   $statusFilter = "WHERE status = '$status'";
 }
 
-// 3. Fetch data
+// Toast message handling
+$toast = '';
+$toastType = '';
+if (isset($_GET['success'])) {
+  $toast = "✅ Status updated successfully!";
+  $toastType = "bg-success";
+} elseif (isset($_GET['cancelled'])) {
+  $toast = "❎ Deletion request was cancelled.";
+  $toastType = "bg-danger";
+} elseif (isset($_GET['error'])) {
+  $toast = "⚠️ Something went wrong.";
+  $toastType = "bg-warning";
+}
+
+// Fetch data
 $sql = "SELECT * FROM account_deletion_requests $statusFilter ORDER BY created_at DESC";
 $result = $conn->query($sql);
 ?>
@@ -173,16 +187,18 @@ $result = $conn->query($sql);
                 <option value="">Show All</option>
                 <option value="Pending" <?= (isset($_GET['status']) && $_GET['status'] == 'Pending') ? 'selected' : '' ?>>Pending</option>
                 <option value="Successful" <?= (isset($_GET['status']) && $_GET['status'] == 'Successful') ? 'selected' : '' ?>>Successful</option>
+                <option value="Cancelled" <?= (isset($_GET['status']) && $_GET['status'] == 'Cancelled') ? 'selected' : '' ?>>Cancelled</option>
               </select>
             </div>
           </form>
 
-          <?php if (isset($_GET['success'])): ?>
+          <!-- Toast Notification -->
+          <?php if ($toast): ?>
             <div class="position-fixed top-0 end-0 p-3" style="z-index: 1100">
-              <div id="statusToast" class="toast show text-white bg-success border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+              <div id="statusToast" class="toast show text-white <?= $toastType ?> border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="d-flex">
                   <div class="toast-body">
-                    ✅ Status updated successfully!
+                    <?= $toast ?>
                   </div>
                   <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
@@ -217,8 +233,10 @@ $result = $conn->query($sql);
                           <span class="badge bg-warning text-dark">Pending</span>
                         <?php elseif ($row['status'] == 'Successful'): ?>
                           <span class="badge bg-success">Deleted</span>
+                        <?php elseif ($row['status'] == 'Cancelled'): ?>
+                          <span class="badge bg-secondary">Cancelled</span>
                         <?php else: ?>
-                          <span class="badge bg-secondary">Other</span>
+                          <span class="badge bg-light text-dark">Unknown</span>
                         <?php endif; ?>
                       </td>
                       <td>

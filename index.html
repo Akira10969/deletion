@@ -147,14 +147,10 @@
           <div id="status-icon" class="fs-1"></div>
           <div id="countdown" class="countdown"></div>
         </div>
-
-        <!-- Cancel Button -->
         <button id="cancel-btn" class="btn btn-danger mt-3 d-none" data-bs-toggle="modal" data-bs-target="#cancelModal">
-        Cancel Deletion Request
+          Cancel Deletion Request
         </button>
-
-
-         <button class="btn btn-outline-secondary mt-3" onclick="window.location.reload()">Back</button>
+        <button class="btn btn-outline-secondary mt-3" onclick="window.location.reload()">Back</button>
       </div>
     </div>
   </div>
@@ -179,151 +175,159 @@
   </div>
 
   <!-- Cancel Confirmation Modal -->
-    <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+  <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+      <div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title">Cancel Deletion Request</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title">Cancel Deletion Request</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-            Are you sure you want to cancel your account deletion request?
+          Are you sure you want to cancel your account deletion request?
         </div>
         <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
-            <button type="button" class="btn btn-danger" onclick="cancelDeletion()">Yes, Cancel</button>
-        </div>
-        </div>
-    </div>
-    </div>
-
-  <!-- Toast -->
-  <div class="toast-container d-none" id="toast">
-    <div class="toast align-items-center text-white bg-success border-0 show" role="alert">
-      <div class="d-flex">
-        <div class="toast-body">
-          Your account deletion request has successfully submitted.
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+          <button type="button" class="btn btn-danger" onclick="cancelDeletion()">Yes, Cancel</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- JavaScript -->
-    <script>
-    function checkStatus(event) {
-        event.preventDefault();
-        const email = document.getElementById("email").value;
+  <!-- Reusable Toast -->
+  <div class="toast-container position-fixed top-50 start-50 translate-middle z-1055 d-none" id="toast-container">
+    <div id="main-toast" class="toast text-white bg-success border-0 show" role="alert">
+      <div class="d-flex">
+        <div class="toast-body fw-semibold" id="toast-message">
+          Default toast message.
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
 
-        fetch('check_status.php', {
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function checkStatus(event) {
+      event.preventDefault();
+      const email = document.getElementById("email").value;
+
+      fetch('check_status.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'email=' + encodeURIComponent(email)
-        })
-        .then(res => res.json())
-        .then(data => {
+      })
+      .then(res => res.json())
+      .then(data => {
         if (data.status === 'new') {
-            document.getElementById('step1-form').classList.add('d-none');
-            document.getElementById('step2-form').classList.remove('d-none');
-            document.getElementById('confirmed_email').value = email;
+          document.getElementById('step1-form').classList.add('d-none');
+          document.getElementById('step2-form').classList.remove('d-none');
+          document.getElementById('confirmed_email').value = email;
         } else if (data.status === 'existing') {
-            document.getElementById('step1-form').classList.add('d-none');
-            document.getElementById('status-section').classList.remove('d-none');
-            document.getElementById('status-email').textContent = data.email;
+          document.getElementById('step1-form').classList.add('d-none');
+          document.getElementById('status-section').classList.remove('d-none');
+          document.getElementById('status-email').textContent = data.email;
 
-            const statusMessage = document.getElementById('status-message');
-            const statusIcon = document.getElementById('status-icon');
-            const countdown = document.getElementById('countdown');
-            const cancelBtn = document.getElementById('cancel-btn');
+          const statusMessage = document.getElementById('status-message');
+          const statusIcon = document.getElementById('status-icon');
+          const countdown = document.getElementById('countdown');
+          const cancelBtn = document.getElementById('cancel-btn');
 
-            if (data.account_status === 'Successful') {
+          if (data.account_status === 'Successful') {
             statusMessage.textContent = 'Successfully Deleted';
             statusMessage.className = 'h5 mb-2 text-success';
             statusIcon.innerHTML = '<span class="text-success">&#10003;</span>';
             countdown.textContent = '';
-            cancelBtn.classList.add("d-none"); // Hide cancel button
-            } else if (data.account_status === 'Pending') {
+            cancelBtn.classList.add("d-none");
+          } else if (data.account_status === 'Pending') {
             statusMessage.textContent = 'Pending';
             statusMessage.className = 'h5 mb-2 text-warning';
             statusIcon.innerHTML = '<span class="text-warning">Pending...</span>';
-            cancelBtn.classList.remove("d-none"); // Show cancel button
+            cancelBtn.classList.remove("d-none");
 
-            // Show countdown
             if (data.created_at) {
-                const requestDate = new Date(data.created_at);
-                const expirationDate = new Date(requestDate);
-                expirationDate.setDate(expirationDate.getDate() + 30);
+              const requestDate = new Date(data.created_at);
+              const expirationDate = new Date(requestDate);
+              expirationDate.setDate(expirationDate.getDate() + 30);
 
-                function updateCountdown() {
+              function updateCountdown() {
                 const now = new Date();
                 const remainingTime = expirationDate - now;
-
                 if (remainingTime > 0) {
-                    const days = Math.floor(remainingTime / (1000 * 60 * 60 * 24));
-                    const hours = Math.floor((remainingTime / (1000 * 60 * 60)) % 24);
-                    const minutes = Math.floor((remainingTime / (1000 * 60)) % 60);
-                    const seconds = Math.floor((remainingTime / 1000) % 60);
-                    countdown.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s remaining until deletion.`;
+                  const days = Math.floor(remainingTime / (1000 * 60 * 60 * 24));
+                  const hours = Math.floor((remainingTime / (1000 * 60 * 60)) % 24);
+                  const minutes = Math.floor((remainingTime / (1000 * 60)) % 60);
+                  const seconds = Math.floor((remainingTime / 1000) % 60);
+                  countdown.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s remaining until deletion.`;
                 } else {
-                    countdown.textContent = 'Deletion window expired.';
-                    clearInterval(timerInterval);
+                  countdown.textContent = 'Deletion window expired.';
+                  clearInterval(timerInterval);
                 }
-                }
-
-                updateCountdown();
-                const timerInterval = setInterval(updateCountdown, 1000);
+              }
+              updateCountdown();
+              const timerInterval = setInterval(updateCountdown, 1000);
             }
-            } else {
+          } else {
             statusMessage.textContent = data.account_status;
             statusMessage.className = 'h5 mb-2 text-danger';
             statusIcon.innerHTML = '';
             countdown.textContent = '';
-            cancelBtn.classList.add("d-none"); // Hide cancel if unknown
-            }
+            cancelBtn.classList.add("d-none");
+          }
         } else {
-            alert("System error or invalid email.");
+          showToast("System error or invalid email.", "danger");
         }
-        });
+      });
     }
 
     function submitDeletion() {
-        const form = document.getElementById("step2-form");
-        const formData = new FormData(form);
+      const form = document.getElementById("step2-form");
+      const formData = new FormData(form);
 
-        fetch("submit_deletion.php", {
+      fetch("submit_deletion.php", {
         method: "POST",
         body: formData
-        }).then(() => {
+      }).then(() => {
         const modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
         modal.hide();
         document.querySelector('.modal-backdrop')?.remove();
         document.getElementById("step2-form").classList.add("d-none");
-        const toast = document.getElementById("toast");
-        toast.classList.remove("d-none");
-        setTimeout(() => toast.classList.add("d-none"), 4000);
-        });
+        showToast("✅ Your account deletion request has been submitted.", "success");
+      });
     }
 
     function cancelDeletion() {
-        const email = document.getElementById('status-email').textContent;
-
-        fetch('cancel_deletion.php', {
+      const email = document.getElementById('status-email').textContent;
+      fetch('cancel_deletion.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'email=' + encodeURIComponent(email)
-        })
-        .then(res => res.json())
-        .then(data => {
+      })
+      .then(res => res.json())
+      .then(data => {
         if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('cancelModal'));
-            modal.hide();
-            alert("Your deletion request has been cancelled.");
-            window.location.reload();
+          const modal = bootstrap.Modal.getInstance(document.getElementById('cancelModal'));
+          modal.hide();
+          showToast("✅ Your deletion request has been cancelled.", "success");
+          setTimeout(() => window.location.reload(), 3000);
         } else {
-            alert("Failed to cancel deletion. Try again.");
+          showToast("⚠️ Failed to cancel deletion. Try again.", "danger");
         }
-        });
+      });
     }
-    </script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    function showToast(message, type) {
+      const toastEl = document.getElementById("main-toast");
+      const toastMsg = document.getElementById("toast-message");
+      const toastContainer = document.getElementById("toast-container");
+
+      toastMsg.textContent = message;
+      toastEl.className = `toast text-white bg-${type} border-0 show`;
+      toastContainer.classList.remove("d-none");
+
+      const bsToast = new bootstrap.Toast(toastEl);
+      bsToast.show();
+    }
+  </script>
 </body>
 </html>
