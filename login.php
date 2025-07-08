@@ -4,10 +4,14 @@ session_start();
 $error = '';
 $showProgress = false;
 
+// Obfuscated password (this is still just for minimal disguise)
+$encoded = 'cHNtZTIwMjQ='; // base64 of "psme2024"
+$realPassword = base64_decode($encoded); // becomes 'psme2024'
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $password = $_POST['password'];
 
-  if ($password === 'psme2024') {
+  if ($password === $realPassword) {
     $_SESSION['admin_logged_in'] = true;
     $showProgress = true;
   } else {
