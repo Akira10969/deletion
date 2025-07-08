@@ -1,35 +1,35 @@
 <?php
-$host = "localhost";
-$user = "root";
-$pass = "";
-$dbname = "deletion";
+require 'db_connect.php';
 
-$conn = new mysqli($host, $user, $pass, $dbname);
-if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $email = $_POST['email'];
 
-$email = $_POST['email'] ?? '';
+  $stmt = $conn->prepare("SELECT status, created_at FROM account_deletion_requests WHERE email = ? ORDER BY id DESC LIMIT 1");
+  $stmt->bind_param("s", $email);
+  $stmt->execute();
+  $result = $stmt->get_result();
 
-if ($email === '') {
-  echo json_encode(['status' => 'invalid']);
-  exit;
+  if ($result->num_rows > 0) {
+    $row = $result->fetch_assoc();
+    $status = $row['status'];
+
+    if ($status === 'Cancelled') {
+      // Let them submit a new request
+      echo json_encode(['status' => 'new']);
+    } else {
+      echo json_encode([
+        'status' => 'existing',
+        'email' => $email,
+        'account_status' => $status,
+        'created_at' => $row['created_at']
+      ]);
+    }
+  } else {
+    // No record found — allow new request
+    echo json_encode(['status' => 'new']);
+  }
+
+  $stmt->close();
+  $conn->close();
 }
-
-$stmt = $conn->prepare("SELECT * FROM account_deletion_requests WHERE email = ?");
-$stmt->bind_param("s", $email);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows > 0) {
-  $row = $result->fetch_assoc();
-    echo json_encode([
-    'status' => 'existing',
-    'email' => $row['email'],
-    'account_status' => $row['status'], // should be 'Pending' or 'Successful'
-    'created_at' => $row['created_at']
-    ]);
-} else {
-  echo json_encode(['status' => 'new']);
-}
-
-$conn->close();
 ?>
