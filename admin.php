@@ -10,6 +10,12 @@ if ($conn->connect_error) {
   die("Connection failed: " . $conn->connect_error);
 }
 
+session_start();
+if (!isset($_SESSION['admin_logged_in'])) {
+  header("Location: login.php");
+  exit;
+}
+
 // 2. Optional filtering
 $statusFilter = '';
 if (isset($_GET['status']) && in_array($_GET['status'], ['Pending', 'Successful'])) {
@@ -119,6 +125,7 @@ $result = $conn->query($sql);
         <a href="admin.php" class="nav-link"><i class="bi bi-speedometer2"></i> Dashboard</a>
         <a href="admin.php?status=Pending" class="nav-link"><i class="bi bi-person-check"></i> Requests</a>
         <a href="#" class="nav-link"><i class="bi bi-gear"></i> Settings</a>
+        <a href="logout" class="nav-link"><i class="bi bi-box-arrow-right"></i> Logout</a>
       </div>
 
       <!-- Main Content -->
