@@ -83,6 +83,8 @@
       100% { opacity: 1; transform: scale(1) translate(-50%, -50%); }
     }
   </style>
+  <!-- ✅ Include reCAPTCHA script in <head> -->
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body class="bg-white">
 
@@ -113,10 +115,10 @@
       </form>
 
       <!-- Step 2 -->
-      <form id="step2-form" class="text-start d-none">
+      <form id="step2-form" class="text-start d-none" onsubmit="openConfirmModal(event)">
         <div class="mb-3">
           <label class="form-label fw-medium">Name</label>
-          <input type="text" name="name" class="form-control rounded-3" required>
+          <input type="text" name="name" id="name" class="form-control rounded-3" required>
         </div>
         <div class="mb-3">
           <label class="form-label fw-medium">Email</label>
@@ -124,17 +126,17 @@
         </div>
         <div class="mb-3">
           <label class="form-label fw-medium">Birthday</label>
-          <input type="text" name="birthday" placeholder="MM/DD/YYYY" class="form-control rounded-3" required>
+          <input type="text" name="birthday" id="birthday" placeholder="MM/DD/YYYY" class="form-control rounded-3" required>
         </div>
         <div class="mb-3">
           <label class="form-label fw-medium">PRC License Number</label>
-          <input type="text" name="prc_number" class="form-control rounded-3" required>
+          <input type="text" name="prc_number" id="prc_number" class="form-control rounded-3" required>
         </div>
         <div class="mb-3">
           <label class="form-label fw-medium">Reason for Deletion</label>
-          <textarea name="reason" class="form-control rounded-3" rows="3" required></textarea>
+          <textarea name="reason" id="reason" class="form-control rounded-3" rows="3" required></textarea>
         </div>
-        <button type="button" class="btn w-100 text-white" style="background-color:#0b1e63;" data-bs-toggle="modal" data-bs-target="#confirmModal">
+        <button type="submit" class="btn w-100 text-white" style="background-color:#0b1e63;">
           SUBMIT
         </button>
       </form>
@@ -155,20 +157,23 @@
     </div>
   </div>
 
-  <!-- Confirm Modal -->
+  <!-- Confirm Delete Modal -->
   <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 rounded-4">
         <div class="modal-header">
-          <h5 class="modal-title">Confirm Deletion Request</h5>
+          <h5 class="modal-title fw-semibold" id="confirmModalLabel">Confirm Account Deletion</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          Your account will be deleted within 30 days from the submission date.<br>Do you wish to proceed?
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" onclick="submitDeletion()">Yes</button>
+          <div id="confirm-details" class="mb-3"></div>
+          <!-- ✅ Google reCAPTCHA -->
+          <div class="mb-3">
+            <div class="g-recaptcha" data-sitekey="6LfnFpQrAAAAANhfFIbHFhXbWCQ0pslkAckNkFNx"></div>
+          </div>
+          <div class="text-end">
+            <button type="button" class="btn btn-danger px-4 fw-medium" onclick="submitDeletion()">Submit</button>
+          </div>
         </div>
       </div>
     </div>
@@ -193,17 +198,8 @@
     </div>
   </div>
 
-  <!-- Reusable Toast -->
-  <div class="toast-container position-fixed top-50 start-50 translate-middle z-1055 d-none" id="toast-container">
-    <div id="main-toast" class="toast text-white bg-success border-0 show" role="alert">
-      <div class="d-flex">
-        <div class="toast-body fw-semibold" id="toast-message">
-          Default toast message.
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
-    </div>
-  </div>
+  <!-- ✅ Toast placeholder -->
+  <div id="toast-container" class="position-fixed bottom-0 end-0 p-3" style="z-index: 1055;"></div>
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -280,20 +276,81 @@
       });
     }
 
+    function showToast(message, type = "success") {
+      const toast = document.createElement("div");
+      toast.className = `toast align-items-center text-bg-${type} border-0 show mb-2`;
+      toast.setAttribute("role", "alert");
+      toast.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">${message}</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+      `;
+      document.getElementById("toast-container").appendChild(toast);
+      setTimeout(() => toast.remove(), 5000);
+    }
+
+    function openConfirmModal(event) {
+      event.preventDefault();
+      // Get values from the form
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('confirmed_email').value;
+      const birthday = document.getElementById('birthday').value;
+      const prc = document.getElementById('prc_number').value;
+      const reason = document.getElementById('reason').value;
+
+      // Show details in modal (not editable)
+      document.getElementById('confirm-details').innerHTML = `
+        <div><strong>Name:</strong> ${name}</div>
+        <div><strong>Email:</strong> ${email}</div>
+        <div><strong>Birthday:</strong> ${birthday}</div>
+        <div><strong>PRC License Number:</strong> ${prc}</div>
+        <div><strong>Reason:</strong> ${reason}</div>
+      `;
+
+      // Show modal
+      const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+      modal.show();
+    }
+
     function submitDeletion() {
-      const form = document.getElementById("step2-form");
-      const formData = new FormData(form);
+      const recaptchaResponse = grecaptcha.getResponse();
+      if (!recaptchaResponse) {
+        showToast("⚠️ Please complete the CAPTCHA", "danger");
+        return;
+      }
+
+      // Gather details from the form (Step 2)
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('confirmed_email').value;
+      const birthday = document.getElementById('birthday').value;
+      const prc = document.getElementById('prc_number').value;
+      const reason = document.getElementById('reason').value;
+
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('confirmed_email', email);
+      formData.append('birthday', birthday);
+      formData.append('prc_number', prc);
+      formData.append('reason', reason);
+      formData.append('g-recaptcha-response', recaptchaResponse);
 
       fetch("submit_deletion.php", {
         method: "POST",
         body: formData
-      }).then(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
-        modal.hide();
-        document.querySelector('.modal-backdrop')?.remove();
-        document.getElementById("step2-form").classList.add("d-none");
-        showToast("✅ Your account deletion request has been submitted.", "success");
-      });
+      })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+          document.querySelector('.modal-backdrop')?.remove();
+          document.getElementById("step2-form").classList.add("d-none");
+          showToast("✅ Your account deletion request has been submitted.", "success");
+        } else {
+          showToast(data.error || "Something went wrong.", "danger");
+        }
+      })
+      .catch(() => showToast("⚠️ Failed to submit. Please try again.", "danger"));
     }
 
     function cancelDeletion() {
@@ -314,19 +371,6 @@
           showToast("⚠️ Failed to cancel deletion. Try again.", "danger");
         }
       });
-    }
-
-    function showToast(message, type) {
-      const toastEl = document.getElementById("main-toast");
-      const toastMsg = document.getElementById("toast-message");
-      const toastContainer = document.getElementById("toast-container");
-
-      toastMsg.textContent = message;
-      toastEl.className = `toast text-white bg-${type} border-0 show`;
-      toastContainer.classList.remove("d-none");
-
-      const bsToast = new bootstrap.Toast(toastEl);
-      bsToast.show();
     }
   </script>
 </body>
